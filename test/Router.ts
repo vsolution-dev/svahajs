@@ -9,18 +9,19 @@ class SampleApplication extends Application {
 }
 
 class SampleRouter extends Router {
-  match(application: Application, { value }) {
+  match({ value }) {
     return this.routes.filter(({ route }) => {
       return value === route;
     });
   }
 }
 
-const add: Middleware = (application, { value }, next) => {
-  return next({ value: value + 1 });
+const add: Middleware = (container, { value }, next) => {
+  container.register('value', () => value + 1);
+  return next();
 };
 
-const final: Middleware = (application, { value }, next) => {
+const final: Middleware = (container, { value }, next) => {
   return value;
 };
 

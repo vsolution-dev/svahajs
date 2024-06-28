@@ -1,5 +1,5 @@
+import { Container } from "@/Container";
 import { compose, Dispatcher, Middleware } from "@/Middleware";
-import { Application } from "@/Application";
 
 export class Route {
   constructor(
@@ -8,10 +8,10 @@ export class Route {
   ) {
   }
 
-  handle(application: Application, context: any, next?: Dispatcher) {
+  handle(container: Container, done?: Dispatcher) {
     const middleware = compose(this.middleware);
-    return middleware(application, context, (application, context) => {
-      return next(context);
+    return middleware(container, () => {
+      return done();
     });
   }
 }

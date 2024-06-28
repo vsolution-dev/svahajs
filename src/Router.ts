@@ -1,12 +1,12 @@
 import { Route } from "@/Route";
-import { Application } from "@/Application";
+import { Container } from "@/Container";
 import { compose, Middleware, Dispatcher } from "@/Middleware";
 
 export abstract class Router {
 
   static wrap(router: Router): Middleware {
-    return (application: Application, context, next?: Dispatcher) => {
-      return router.handle(application, context, next);
+    return (container: Container, context: any, next?: Dispatcher) => {
+      return router.handle(container, next);
     }
   }
 
@@ -23,23 +23,25 @@ export abstract class Router {
     return this;
   }
 
-  abstract match(application: Application, context: any): Route[];
+  abstract match(context: any): Route[];
 
-  handle(application: Application, context: any, next?: Dispatcher) {
-    const routes = this.match(application, context);
+  handle(container: Container, done?: Dispatcher) {
+    const routes = this.match(container.dependencies);
     if ( ! routes.length) {
-      return next(context);
+      return done();
     }
 
     const middleware = compose(this.middleware);
-    return middleware(application, context, (application, context) => {
+    return middleware(container, (container: Container, context: any) => {
       const middleware = compose(routes.map((route): Middleware => {
-        return (application, context, next) => {
-          return route.handle(application, context, next);
+        return (container, context: any, next) => {
+          return route.handle(container, next);
         }
       }));
 
-      return middleware(application, context, next);
+      return middleware(container, () => {
+        return done();
+      });
     });
   }
 }

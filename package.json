@@ -1,6 +1,6 @@
 {
   "name": "@vsolution-dev/svahajs",
-  "version": "0.0.1",
+  "version": "0.0.1-nightly",
   "description": "",
   "main": "dist/bundle.cjs.js",
   "module": "dist/bundle.esm.js",

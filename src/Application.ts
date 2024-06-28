@@ -3,29 +3,7 @@ import { compose, Middleware } from "@/Middleware";
 
 export abstract class Application {
 
-  private isRunning: boolean = false;
   private middleware: Middleware[] = [];
-
-  start() {
-    this.isRunning = true;
-    Promise.resolve()
-      .then(() => this.setup())
-      .then(() => this.listen())
-  }
-
-  stop() {
-    this.isRunning = false;
-  }
-
-  async perform(context: any) {
-    try {
-      await this.setup();
-
-      return await this.handle(context);
-    } finally {
-      await this.teardown();
-    }
-  }
 
   use(middleware: Middleware | Router) {
     if (middleware instanceof Router) {
@@ -37,35 +15,22 @@ export abstract class Application {
 
   handle(context: any) {
     const middleware = compose(this.middleware);
-    return middleware(this, context);
+    return middleware(context);
   }
 
-  setup() {
-    process.on('SIGINT', () => {
-      this.stop();
-    });
+  perform(context: any) {
+    return this.handle(context);
   }
 
-  teardown() {
-    if ( process.env.NODE_ENV === 'production') {
-      process.exit(0);
-    }
-  }
+  listen(fetch: () => Promise<any>) {
+    const loop = () => {
+      return fetch().then(context => {
+        return this.handle(context);
+      }).finally(() => {
+        setTimeout(loop, 0);
+      });
+    };
 
-  abstract waitForNext(): Promise<any>;
-
-  async listen() {
-    await this.setup();
-
-    do {
-      const context = await this.waitForNext();
-      try {
-        await this.handle(context);
-      } catch (error) {
-        // ...
-      }
-    } while (this.isRunning);
-
-    await this.teardown();
+    return loop();
   }
 }

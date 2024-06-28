@@ -1,10 +1,10 @@
-import { Application } from "@/Application";
+import { Container } from "@/Container";
 
-export type Dispatcher = (payload?: {}, delta?: number) => any
+export type Dispatcher = (delta?: number) => any
 export type Middleware = (
-  application: Application,
+  container: Container,
   context: any,
-  next?: Dispatcher
+  next?: Dispatcher,
 ) => any;
 
 export const compose = (middleware: Middleware[]) => {
@@ -12,9 +12,9 @@ export const compose = (middleware: Middleware[]) => {
     middleware = [ middleware ];
   }
 
-  const dispatch = (index: number, application: Application, context: any, next?: Middleware) => {
+  const dispatch = (index: number, container: Container, next?: Middleware) => {
     let handle = middleware[index];
-    if (middleware.length === index) {
+    if (index >= middleware.length) {
       handle = next;
     }
 
@@ -23,15 +23,19 @@ export const compose = (middleware: Middleware[]) => {
     }
 
     try {
-      return Promise.resolve(handle(application, context, (payload = {}, delta = 1) => {
-        return dispatch(index + delta, application, { ...context, ...payload }, next);
+      return Promise.resolve(handle(container, container.dependencies, (delta = 1) => {
+        return dispatch(index + delta, container, next);
       }))
     } catch (error) {
       return Promise.reject(error);
     }
   }
 
-  return (application?: Application, context?: any, next?: Middleware) => {
-    return dispatch(0, application, context, next);
+  return (context: any, next?: Middleware) => {
+    if ( ! (context instanceof Container)) {
+      context = new Container(context);
+    }
+
+    return dispatch(0, context, next);
   }
 }
