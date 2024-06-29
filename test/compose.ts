@@ -1,5 +1,5 @@
+import { Container } from "@/Container";
 import { compose, Middleware } from "@/Middleware";
-import { Container } from "../src/Container";
 
 test('compose', async () => {
   const add: Middleware = (container, { value }, next) => {

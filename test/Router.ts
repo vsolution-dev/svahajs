@@ -1,14 +1,8 @@
 import { Application } from "@/Application";
-import { Router } from "@/Router";
 import { Middleware } from "@/Middleware";
+import { Router as BaseRouter } from "@/Router";
 
-class SampleApplication extends Application {
-  waitForNext(): Promise<any> {
-    return Promise.resolve(undefined);
-  }
-}
-
-class SampleRouter extends Router {
+class Router extends BaseRouter {
   match({ value }) {
     return this.routes.filter(({ route }) => {
       return value === route;
@@ -26,7 +20,7 @@ const final: Middleware = (container, { value }, next) => {
 };
 
 test('Router', async () => {
-  const router = new SampleRouter();
+  const router = new Router();
   router.use(add); // 1
   router.use(add); // 2
   router.route(1, add, add); // 3, 4
@@ -34,7 +28,7 @@ test('Router', async () => {
   router.route(2, add);
   router.route(1, final); // 5
 
-  const application = new SampleApplication();
+  const application = new Application();
   application.use(router);
 
   const value = await application.perform({

@@ -8,15 +8,39 @@ export class Container {
   }
 
   has(name: string) {
-    return this.#dependencies.has(name);
+    if (this.#dependencies.has(name)) {
+      return true;
+    }
+
+    if (this.context.hasOwnProperty(name)) {
+      return true;
+    }
+
+    return false;
   }
 
   get(name: string) {
-    return this.#dependencies.get(name);
+    if (this.#dependencies.has(name)) {
+      return this.#dependencies.get(name);
+    }
+
+    if (this.context.hasOwnProperty(name)) {
+      return this.context[name];
+    }
+
+    return undefined;
   }
 
-  register(name: string, dependency: any) {
-    this.#dependencies.set(name, dependency);
+  register(name: string | Record<string, any>, dependency?: any) {
+    let dependencies = name;
+    if (typeof name === 'string' && dependency) {
+      dependencies = { [name]: dependency }
+    }
+
+    Object.entries(dependencies).forEach(([ name, dependency ]) => {
+      this.#dependencies.set(name, dependency);
+    });
+
     return this;
   }
 
@@ -27,12 +51,22 @@ export class Container {
           return this.resolve(name);
         }
 
-        if (this.context.hasOwnProperty(name)) {
-          return this.context[name];
-        }
+        return undefined;
+        // throw new Error(`의존성(${name})을 찾을 수 없습니다.`);
+      },
 
-        throw new Error(`의존성(${name})을 찾을 수 없습니다.`);
-      }
+      ownKeys: () => {
+        return Object.keys(this.context);
+      },
+
+      getOwnPropertyDescriptor: (target, name: string) => {
+        if (this.context.hasOwnProperty(name)) {
+          return {
+            enumerable: true,
+            configurable: true,
+          };
+        }
+      },
     });
   }
 

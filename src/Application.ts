@@ -1,7 +1,7 @@
 import { Router } from "@/Router";
 import { compose, Middleware } from "@/Middleware";
 
-export abstract class Application {
+export class Application {
 
   private middleware: Middleware[] = [];
 
@@ -10,7 +10,8 @@ export abstract class Application {
       middleware = Router.wrap(middleware);
     }
 
-    this.middleware.push(middleware)
+    this.middleware.push(middleware);
+    return this;
   }
 
   handle(context: any) {
@@ -22,15 +23,21 @@ export abstract class Application {
     return this.handle(context);
   }
 
-  listen(fetch: () => Promise<any>) {
+  listen(
+    fetch: () => Promise<any>,
+    reject: (error, context: any) => void
+  ) {
     const loop = () => {
-      return fetch().then(context => {
-        return this.handle(context);
-      }).finally(() => {
-        setTimeout(loop, 0);
-      });
+      fetch().then((context) => {
+        return this.handle(context)
+          .catch((error) => {
+            reject(error, context);
+          });
+        }).finally(() => {
+          setTimeout(loop, 0);
+        });
     };
 
-    return loop();
+    loop();
   }
 }
