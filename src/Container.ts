@@ -1,9 +1,37 @@
-import { Dependency } from "./Dependency";
+const memoize = (callback) => {
+  let value = undefined;
+  return function () {
+    if (value === undefined) {
+      value = callback.apply(this, arguments);
+    }
+
+    return value;
+  }
+}
 
 export class Container {
 
   #context: any = {};
-  #dependencies = new Map<string, Dependency>();
+  #dependencies = new Map<string, any>();
+
+  dependencies = new Proxy({}, {
+    get: (target, name: string) => {
+      return this.resolve(name);
+    },
+
+    ownKeys: () => {
+      return Object.keys(this.#context);
+    },
+
+    getOwnPropertyDescriptor: (target, name) => {
+      if (this.#context.hasOwnProperty(name)) {
+        return {
+          enumerable: true,
+          configurable: true,
+        };
+      }
+    },
+  });
 
   public constructor(context = {}) {
     this.for(context);
@@ -17,7 +45,7 @@ export class Container {
   public clear() {
     for (const [ name, dependency ] of this.#dependencies) {
       if ( ! dependency.persistent) {
-        this.#dependencies.delete(name);
+        this.unbind(name);
       }
     }
   }
@@ -27,45 +55,32 @@ export class Container {
     return this;
   }
 
-  public bind(name: any, handle?: any, persistent: boolean = false) {
+  public bind(name: any, provide?: any, persistent: boolean = false) {
     let dependency = name;
     if (typeof name === 'string') {
-      dependency = { name, handle, persistent };
+      dependency = { name, provide, persistent };
     }
 
-    this.set(dependency);
+    this.add(dependency);
     return this;
   }
 
-  private set({ name, handle, persistent }) {
-    this.#dependencies.set(name, new Dependency(handle, persistent));
-  }
+  private add({ name, provide, persistent }) {
+    const dependency = this.#dependencies.get(name);
+    if (dependency && dependency.persistent) {
+      return;
+    }
 
-  public get dependencies() {
-    return new Proxy({}, {
-      get: (target, name: string) => {
-        return this.resolve(name);
-      },
-
-      ownKeys: () => {
-        return Object.keys(this.#context);
-      },
-
-      getOwnPropertyDescriptor: (target, name: string) => {
-        if (this.#context.hasOwnProperty(name)) {
-          return {
-            enumerable: true,
-            configurable: true,
-          };
-        }
-      },
+    this.#dependencies.set(name, {
+      persistent: persistent || false,
+      provide: memoize((context) => provide(context))
     });
   }
 
   public resolve(name: string) {
     if (this.#dependencies.has(name)) {
       const dependency = this.#dependencies.get(name);
-      return dependency.resolve(this.dependencies);
+      return dependency.provide(this.dependencies);
     }
 
     if (this.#context.hasOwnProperty(name)) {

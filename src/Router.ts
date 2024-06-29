@@ -32,14 +32,14 @@ export abstract class Router {
     }
 
     const middleware = compose(this.middleware);
-    return middleware(container, (container: Container, context: any) => {
+    return middleware(container, (container: Container, context: any, next) => {
       const middleware = compose(routes.map((route): Middleware => {
         return (container, context: any, next) => {
           return route.handle(container, next);
         }
       }));
 
-      return middleware(container, () => {
+      return middleware(container, (container: Container, context: any, next) => {
         return done();
       });
     });

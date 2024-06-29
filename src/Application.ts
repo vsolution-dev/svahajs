@@ -6,7 +6,7 @@ export class Application extends Container {
 
   #middleware: Middleware[] = [];
 
-  constructor() {
+  public constructor() {
     super();
   }
 
@@ -22,7 +22,7 @@ export class Application extends Container {
   async handle(context: any) {
     try {
       const middleware = compose(this.#middleware);
-      return middleware(this.for(context));
+      return await middleware(this.for(context));
     } catch (error) {
       throw error;
     } finally {
@@ -40,11 +40,9 @@ export class Application extends Container {
   ) {
     const loop = () => {
       fetch(this.dependencies).then((context) => {
-        return this.handle(context).catch((error) => {
-          if (reject) {
-            reject(error, context);
-          }
-        });
+        return this.handle(context);
+      }).catch((error) => {
+        if (reject) reject(error, this.dependencies);
       }).finally(() => {
         setTimeout(loop, 0);
       });

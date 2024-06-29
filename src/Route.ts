@@ -10,7 +10,7 @@ export class Route {
 
   handle(container: Container, done?: Dispatcher) {
     const middleware = compose(this.middleware);
-    return middleware(container, () => {
+    return middleware(container, (container: Container, context: any, next) => {
       return done();
     });
   }

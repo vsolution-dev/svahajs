@@ -31,7 +31,7 @@ export const compose = (middleware: Middleware[]) => {
     }
   }
 
-  return (context: any, next?: Middleware) => {
-    return dispatch(0, context, next);
+  return (container: Container, next?: Middleware) => {
+    return dispatch(0, container, next);
   }
 }
