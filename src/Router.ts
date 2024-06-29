@@ -18,8 +18,8 @@ export abstract class Router {
     return this;
   }
 
-  route(route: any, ...middleware: Middleware[]) {
-    this.routes.push(new Route(route, middleware));
+  route(route: any, middleware: Middleware) {
+    this.routes.push(new Route(route, [ middleware ]));
     return this;
   }
 

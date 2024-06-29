@@ -23,7 +23,8 @@ test('Router', async () => {
   const router = new Router();
   router.use(add); // 1
   router.use(add); // 2
-  router.route(1, add, add); // 3, 4
+  router.route(1, add); // 3
+  router.route(1, add); // 4
   router.route(2, add);
   router.route(2, add);
   router.route(1, final); // 5

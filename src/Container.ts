@@ -31,16 +31,8 @@ export class Container {
     return undefined;
   }
 
-  register(name: string | Record<string, any>, dependency?: any) {
-    let dependencies = name;
-    if (typeof name === 'string' && dependency) {
-      dependencies = { [name]: dependency }
-    }
-
-    Object.entries(dependencies).forEach(([ name, dependency ]) => {
-      this.#dependencies.set(name, dependency);
-    });
-
+  register(name: string, dependency?: any) {
+    this.#dependencies.set(name, dependency);
     return this;
   }
 
