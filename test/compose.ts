@@ -3,7 +3,7 @@ import { compose, Middleware } from "@/Middleware";
 
 test('compose', async () => {
   const add: Middleware = (container, { value }, next) => {
-    container.register('value', () => value + 1);
+    container.bind('value', () => value + 1);
     return next();
   }
 

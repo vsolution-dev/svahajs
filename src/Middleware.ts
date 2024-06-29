@@ -1,4 +1,4 @@
-import { Container } from "@/Container";
+import { Container } from "./Container";
 
 export type Dispatcher = (delta?: number) => any
 export type Middleware = (
@@ -32,10 +32,6 @@ export const compose = (middleware: Middleware[]) => {
   }
 
   return (context: any, next?: Middleware) => {
-    if ( ! (context instanceof Container)) {
-      context = new Container(context);
-    }
-
     return dispatch(0, context, next);
   }
 }

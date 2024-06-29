@@ -1,41 +1,53 @@
-import { Router } from "@/Router";
-import { compose, Middleware } from "@/Middleware";
+import { Router } from "./Router";
+import { Container } from "./Container";
+import { compose, Middleware } from "./Middleware";
 
-export class Application {
+export class Application extends Container {
 
-  private middleware: Middleware[] = [];
+  #middleware: Middleware[] = [];
 
-  use(middleware: Middleware | Router) {
+  constructor() {
+    super();
+  }
+
+  public use(middleware: Middleware | Router) {
     if (middleware instanceof Router) {
       middleware = Router.wrap(middleware);
     }
 
-    this.middleware.push(middleware);
+    this.#middleware.push(middleware);
     return this;
   }
 
-  handle(context: any) {
-    const middleware = compose(this.middleware);
-    return middleware(context);
+  async handle(context: any) {
+    try {
+      const middleware = compose(this.#middleware);
+      return middleware(this.for(context));
+    } catch (error) {
+      throw error;
+    } finally {
+      this.clear();
+    }
   }
 
-  perform(context: any) {
+  public perform(context: any) {
     return this.handle(context);
   }
 
-  listen(
-    fetch: () => Promise<any>,
-    reject: (error, context: any) => void
+  public listen(
+    fetch: (context: any) => Promise<any>,
+    reject?: (error, context: any) => void,
   ) {
     const loop = () => {
-      fetch().then((context) => {
-        return this.handle(context)
-          .catch((error) => {
+      fetch(this.dependencies).then((context) => {
+        return this.handle(context).catch((error) => {
+          if (reject) {
             reject(error, context);
-          });
-        }).finally(() => {
-          setTimeout(loop, 0);
+          }
         });
+      }).finally(() => {
+        setTimeout(loop, 0);
+      });
     };
 
     loop();

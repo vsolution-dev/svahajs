@@ -1,6 +1,6 @@
-import { Route } from "@/Route";
-import { Container } from "@/Container";
-import { compose, Middleware, Dispatcher } from "@/Middleware";
+import { Route } from "./Route";
+import { Container } from "./Container";
+import { compose, Middleware, Dispatcher } from "./Middleware";
 
 export abstract class Router {
 

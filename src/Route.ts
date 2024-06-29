@@ -1,5 +1,5 @@
-import { Container } from "@/Container";
-import { compose, Dispatcher, Middleware } from "@/Middleware";
+import { Container } from "./Container";
+import { compose, Dispatcher, Middleware } from "./Middleware";
 
 export class Route {
   constructor(

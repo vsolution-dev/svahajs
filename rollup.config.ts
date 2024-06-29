@@ -15,16 +15,6 @@ export default {
   ],
   plugins: [
     typescript(),
-    alias({
-      entries: [{
-        find: '@',
-        replacement: path.resolve(
-          path.dirname(fileURLToPath(import.meta.url)),
-          'src'
-        )
-      }],
-    }),
-
     isDevelopment && run(),
   ],
 }

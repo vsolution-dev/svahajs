@@ -1,58 +1,58 @@
+import { Dependency } from "./Dependency";
+
 export class Container {
 
-  readonly #dependencies = new Map<string, any>();
+  #context: any = {};
+  #dependencies = new Map<string, Dependency>();
 
-  constructor(
-    private readonly context: any
-  ) {
+  public constructor(context = {}) {
+    this.for(context);
   }
 
-  has(name: string) {
-    if (this.#dependencies.has(name)) {
-      return true;
-    }
-
-    if (this.context.hasOwnProperty(name)) {
-      return true;
-    }
-
-    return false;
-  }
-
-  get(name: string) {
-    if (this.#dependencies.has(name)) {
-      return this.#dependencies.get(name);
-    }
-
-    if (this.context.hasOwnProperty(name)) {
-      return this.context[name];
-    }
-
-    return undefined;
-  }
-
-  register(name: string, dependency?: any) {
-    this.#dependencies.set(name, dependency);
+  public for(context: any) {
+    this.#context = context;
     return this;
   }
 
-  get dependencies() {
+  public clear() {
+    for (const [ name, dependency ] of this.#dependencies) {
+      if ( ! dependency.persistent) {
+        this.#dependencies.delete(name);
+      }
+    }
+  }
+
+  public unbind(name: string) {
+    this.#dependencies.delete(name);
+    return this;
+  }
+
+  public bind(name: any, handle?: any, persistent: boolean = false) {
+    let dependency = name;
+    if (typeof name === 'string') {
+      dependency = { name, handle, persistent };
+    }
+
+    this.set(dependency);
+    return this;
+  }
+
+  private set({ name, handle, persistent }) {
+    this.#dependencies.set(name, new Dependency(handle, persistent));
+  }
+
+  public get dependencies() {
     return new Proxy({}, {
       get: (target, name: string) => {
-        if (this.has(name)) {
-          return this.resolve(name);
-        }
-
-        return undefined;
-        // throw new Error(`의존성(${name})을 찾을 수 없습니다.`);
+        return this.resolve(name);
       },
 
       ownKeys: () => {
-        return Object.keys(this.context);
+        return Object.keys(this.#context);
       },
 
       getOwnPropertyDescriptor: (target, name: string) => {
-        if (this.context.hasOwnProperty(name)) {
+        if (this.#context.hasOwnProperty(name)) {
           return {
             enumerable: true,
             configurable: true,
@@ -62,16 +62,16 @@ export class Container {
     });
   }
 
-  resolve(name: string) {
-    if ( ! this.has(name)) {
-      throw new Error(`의존성(${name})을 찾을 수 없습니다.`);
+  public resolve(name: string) {
+    if (this.#dependencies.has(name)) {
+      const dependency = this.#dependencies.get(name);
+      return dependency.resolve(this.dependencies);
     }
 
-    const dependency = this.get(name);
-    if (typeof dependency === 'function') {
-      return dependency(this.dependencies);
+    if (this.#context.hasOwnProperty(name)) {
+      return this.#context[name];
     }
 
-    return dependency;
+    return undefined;
   }
 }
