@@ -18,6 +18,16 @@ export abstract class Router {
     return this;
   }
 
+  bind(dependencies: any[]) {
+    this.middleware.unshift((container, context, next) => {
+      dependencies.forEach((dependency) => {
+        container.bind(dependency);
+      });
+      return next();
+    });
+    return this;
+  }
+
   route(route: any, middleware: Middleware) {
     this.routes.push(new Route(route, [ middleware ]));
     return this;
