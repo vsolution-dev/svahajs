@@ -2,10 +2,10 @@ import { Route } from "./Route";
 import { Container } from "./Container";
 import { compose, Middleware, Dispatcher } from "./Middleware";
 
-export abstract class Router {
+export abstract class Router extends Container {
 
   static compose(routes: Route[]) {
-    return (container: Container, done?: Dispatcher) => {
+    return (container: Container, done: Dispatcher) => {
       const middleware = compose(routes.map((route): Middleware => {
         return (container, context: any, next) => {
           return route.handle(container, next);
@@ -19,7 +19,7 @@ export abstract class Router {
   }
 
   static wrap(router: Router): Middleware {
-    return (container: Container, context: any, next?: Dispatcher) => {
+    return (container: Container, context: any, next: Dispatcher) => {
       return router.handle(container, next);
     }
   }
@@ -39,14 +39,14 @@ export abstract class Router {
 
   abstract match(context: any): Route[];
 
-  handle(container: Container, done?: Dispatcher) {
-    const routes = this.match(container.dependencies);
+  handle(container: Container, done: Dispatcher) {
+    const routes = this.match(this.dependencies);
     if ( ! routes.length) {
       return done();
     }
 
     const middleware = compose(this.middleware);
-    return middleware(container, () => {
+    return middleware(this, (container: Container) => {
       const middleware = Router.compose(routes);
       return middleware(container, () => {
         return done();

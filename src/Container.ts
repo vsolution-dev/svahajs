@@ -3,23 +3,41 @@ import { memoize } from "./Functions";
 export class Container {
 
   #context: any = {};
+  #containers: Set<Container> = new Set();
   #dependencies = new Map<string, any>();
 
-  dependencies = new Proxy({}, {
-    get: (target, name: string) => {
-      return this.resolve(name);
+  readonly dependencies = new Proxy({}, {
+    get: (target, property: string) => {
+      return this.resolve(property);
     },
 
     ownKeys: () => {
-      return Object.keys(this.#context);
+      const keys = new Set(Reflect.ownKeys(this.#context));
+
+      this.#containers.forEach(container => {
+        Reflect.ownKeys(container.#context).forEach(key => {
+          return keys.add(key);
+        });
+      });
+
+      return Array.from(keys);
     },
 
-    getOwnPropertyDescriptor: (target, name) => {
-      if (this.#context.hasOwnProperty(name)) {
+    getOwnPropertyDescriptor: (target, property) => {
+      if (this.#context.hasOwnProperty(property)) {
         return {
           enumerable: true,
           configurable: true,
         };
+      }
+
+      for (const container of this.#containers) {
+        if (container.#context.hasOwnProperty(property)) {
+          return {
+            enumerable: true,
+            configurable: true,
+          };
+        }
       }
     },
   });
@@ -30,6 +48,14 @@ export class Container {
 
   for(context: any) {
     this.#context = context;
+    return this;
+  }
+
+  with(container: Container) {
+    if (container !== this && ! this.#containers.has(container)) {
+      this.#containers.add(container);
+    }
+
     return this;
   }
 
@@ -68,6 +94,18 @@ export class Container {
     });
   }
 
+  has(name: string) {
+    if (this.#dependencies.has(name)) {
+      return true;
+    }
+
+    if (this.#context.hasOwnProperty(name)) {
+      return true;
+    }
+
+    return false;
+  }
+
   resolve(name: string) {
     if (this.#dependencies.has(name)) {
       const dependency = this.#dependencies.get(name);
@@ -76,6 +114,12 @@ export class Container {
 
     if (this.#context.hasOwnProperty(name)) {
       return this.#context[name];
+    }
+
+    for (const container of this.#containers) {
+      if (container.has(name)) {
+        return container.resolve(name);
+      }
     }
 
     return undefined;

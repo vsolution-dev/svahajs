@@ -4,7 +4,7 @@ import { compose, Middleware } from "./Middleware";
 
 export class Application extends Container {
 
-  #middleware: Middleware[] = [];
+  middleware: Middleware[] = [];
 
   public constructor() {
     super();
@@ -12,16 +12,16 @@ export class Application extends Container {
 
   public use(middleware: Middleware | Router) {
     if (middleware instanceof Router) {
-      middleware = Router.wrap(middleware);
+      middleware = Router.wrap(middleware.with(this));
     }
 
-    this.#middleware.push(middleware);
+    this.middleware.push(middleware);
     return this;
   }
 
   async handle(context: any) {
     try {
-      const middleware = compose(this.#middleware);
+      const middleware = compose(this.middleware);
       return await middleware(this.for(context));
     } catch (error) {
       throw error;

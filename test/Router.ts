@@ -3,6 +3,11 @@ import { Middleware } from "@/Middleware";
 import { Router as BaseRouter } from "@/Router";
 
 class Router extends BaseRouter {
+
+  constructor() {
+    super();
+  }
+
   match({ value }) {
     return this.routes.filter(({ route }) => {
       return value === route;

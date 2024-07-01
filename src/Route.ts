@@ -8,7 +8,7 @@ export class Route {
   ) {
   }
 
-  handle(container: Container, done?: Dispatcher) {
+  handle(container: Container, done: Dispatcher) {
     const middleware = compose(this.middleware);
     return middleware(container, () => {
       return done();
