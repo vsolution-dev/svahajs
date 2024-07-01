@@ -4,6 +4,20 @@ import { compose, Middleware, Dispatcher } from "./Middleware";
 
 export abstract class Router {
 
+  static compose(routes: Route[]) {
+    return (container: Container, done?: Dispatcher) => {
+      const middleware = compose(routes.map((route): Middleware => {
+        return (container, context: any, next) => {
+          return route.handle(container, next);
+        }
+      }));
+
+      return middleware(container, () => {
+        return done();
+      })
+    };
+  }
+
   static wrap(router: Router): Middleware {
     return (container: Container, context: any, next?: Dispatcher) => {
       return router.handle(container, next);
@@ -15,16 +29,6 @@ export abstract class Router {
 
   use(middleware: Middleware) {
     this.middleware.push(middleware);
-    return this;
-  }
-
-  bind(dependencies: any[]) {
-    this.middleware.unshift((container, context, next) => {
-      dependencies.forEach((dependency) => {
-        container.bind(dependency);
-      });
-      return next();
-    });
     return this;
   }
 
@@ -42,14 +46,9 @@ export abstract class Router {
     }
 
     const middleware = compose(this.middleware);
-    return middleware(container, (container: Container, context: any, next) => {
-      const middleware = compose(routes.map((route): Middleware => {
-        return (container, context: any, next) => {
-          return route.handle(container, next);
-        }
-      }));
-
-      return middleware(container, (container: Container, context: any, next) => {
+    return middleware(container, () => {
+      const middleware = Router.compose(routes);
+      return middleware(container, () => {
         return done();
       });
     });

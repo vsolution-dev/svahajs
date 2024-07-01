@@ -1,13 +1,4 @@
-const memoize = (callback) => {
-  let value = undefined;
-  return function () {
-    if (value === undefined) {
-      value = callback.apply(this, arguments);
-    }
-
-    return value;
-  }
-}
+import { memoize } from "./Functions";
 
 export class Container {
 
@@ -33,16 +24,16 @@ export class Container {
     },
   });
 
-  public constructor(context = {}) {
+  constructor(context = {}) {
     this.for(context);
   }
 
-  public for(context: any) {
+  for(context: any) {
     this.#context = context;
     return this;
   }
 
-  public clear() {
+  clear() {
     for (const [ name, dependency ] of this.#dependencies) {
       if ( ! dependency.persistent) {
         this.unbind(name);
@@ -50,22 +41,22 @@ export class Container {
     }
   }
 
-  public unbind(name: string) {
+  unbind(name: string) {
     this.#dependencies.delete(name);
     return this;
   }
 
-  public bind(name: any, provide?: any, persistent: boolean = false) {
+  bind(name: any, provide?: any, persistent: boolean = false) {
     let dependency = name;
     if (typeof name === 'string') {
       dependency = { name, provide, persistent };
     }
 
-    this.add(dependency);
+    this.#addDependency(dependency);
     return this;
   }
 
-  private add({ name, provide, persistent }) {
+  #addDependency({ name, provide, persistent }) {
     const dependency = this.#dependencies.get(name);
     if (dependency && dependency.persistent) {
       return;
@@ -77,7 +68,7 @@ export class Container {
     });
   }
 
-  public resolve(name: string) {
+  resolve(name: string) {
     if (this.#dependencies.has(name)) {
       const dependency = this.#dependencies.get(name);
       return dependency.provide(this.dependencies);
