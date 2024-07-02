@@ -2,7 +2,7 @@ export const memoize = (callback: any) => {
   let cache: any = undefined;
   let isPromise = false;
 
-  return function () {
+  const memoized = function () {
     if (cache === undefined) {
       cache = callback.apply(this, arguments);
 
@@ -19,4 +19,11 @@ export const memoize = (callback: any) => {
       ? Promise.resolve(cache)
       : cache;
   }
+
+  memoized.invalidate = () => {
+    cache = undefined;
+    isPromise = false;
+  }
+
+  return memoized;
 }

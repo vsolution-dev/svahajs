@@ -59,6 +59,16 @@ export class Container {
     return this;
   }
 
+  invalidate() {
+    for (const [ , dependency ] of this.#dependencies) {
+      if (dependency.provide.invalidate) {
+        dependency.provide.invalidate();
+      }
+    }
+
+    return this;
+  }
+
   clear() {
     for (const [ name, dependency ] of this.#dependencies) {
       if ( ! dependency.persistent) {

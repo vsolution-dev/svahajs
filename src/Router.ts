@@ -46,7 +46,7 @@ export abstract class Router extends Container {
     }
 
     const middleware = compose(this.middleware);
-    return middleware(this, (container: Container) => {
+    return middleware(this.invalidate(), (container: Container) => {
       const middleware = Router.compose(routes);
       return middleware(container, () => {
         return done();
