@@ -61,20 +61,12 @@ export class Container {
 
   invalidate() {
     for (const [ , dependency ] of this.#dependencies) {
-      if (dependency.provide.invalidate) {
+      if ( ! dependency.persistent) {
         dependency.provide.invalidate();
       }
     }
 
     return this;
-  }
-
-  clear() {
-    for (const [ name, dependency ] of this.#dependencies) {
-      if ( ! dependency.persistent) {
-        this.unbind(name);
-      }
-    }
   }
 
   unbind(name: string) {
@@ -93,11 +85,6 @@ export class Container {
   }
 
   #addDependency({ name, provide, persistent }) {
-    const dependency = this.#dependencies.get(name);
-    if (dependency && dependency.persistent) {
-      return;
-    }
-
     this.#dependencies.set(name, {
       persistent: persistent || false,
       provide: memoize((context) => provide(context))

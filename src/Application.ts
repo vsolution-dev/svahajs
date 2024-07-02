@@ -26,7 +26,7 @@ export class Application extends Container {
     } catch (error) {
       throw error;
     } finally {
-      this.clear();
+      this.invalidate();
     }
   }
 
