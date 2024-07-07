@@ -6,11 +6,7 @@ export class Application extends Container {
 
   middleware: Middleware[] = [];
 
-  public constructor() {
-    super();
-  }
-
-  public use(middleware: Middleware | Router) {
+  use(middleware: Middleware | Router) {
     if (middleware instanceof Router) {
       middleware = Router.wrap(middleware.with(this));
     }
@@ -20,21 +16,15 @@ export class Application extends Container {
   }
 
   async handle(context: any) {
-    try {
-      const middleware = compose(this.middleware);
-      return await middleware(this.for(context));
-    } catch (error) {
-      throw error;
-    } finally {
-      this.invalidate();
-    }
+    const middleware = compose(this.middleware);
+    return await middleware(this.for(context).invalidate());
   }
 
-  public perform(context: any) {
+  perform(context: any) {
     return this.handle(context);
   }
 
-  public listen(
+  listen(
     fetch: (context: any) => Promise<any>,
     reject?: (error, context: any) => void,
   ) {

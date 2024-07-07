@@ -1,10 +1,20 @@
-import { memoize } from "./Functions";
+type ProvideFunction<T> = (context: any, container?: Container) => T;
+type InvalidateFunction = (context?: any, container?: Container) => void;
+
+export interface Dependency<T> {
+  name: string;
+  provide: ProvideFunction<T>;
+  invalidate?: InvalidateFunction;
+}
+
+type Context = Record<string, any>;
+type Dependencies = Record<string, Dependency<any>>;
 
 export class Container {
 
-  #context: any = {};
-  #containers: Set<Container> = new Set();
-  #dependencies = new Map<string, any>();
+  _context: Context = {};
+  _containers: Set<Container> = new Set();
+  _dependencies: Dependencies = {};
 
   readonly dependencies = new Proxy({}, {
     get: (target, property: string) => {
@@ -12,10 +22,10 @@ export class Container {
     },
 
     ownKeys: () => {
-      const keys = new Set(Reflect.ownKeys(this.#context));
+      const keys = new Set(Reflect.ownKeys(this._context));
 
-      this.#containers.forEach(container => {
-        Reflect.ownKeys(container.#context).forEach(key => {
+      this._containers.forEach(container => {
+        Reflect.ownKeys(container._context).forEach(key => {
           return keys.add(key);
         });
       });
@@ -24,15 +34,15 @@ export class Container {
     },
 
     getOwnPropertyDescriptor: (target, property) => {
-      if (this.#context.hasOwnProperty(property)) {
+      if (this._context.hasOwnProperty(property)) {
         return {
           enumerable: true,
           configurable: true,
         };
       }
 
-      for (const container of this.#containers) {
-        if (container.#context.hasOwnProperty(property)) {
+      for (const container of this._containers) {
+        if (container._context.hasOwnProperty(property)) {
           return {
             enumerable: true,
             configurable: true,
@@ -42,61 +52,57 @@ export class Container {
     },
   });
 
-  constructor(context = {}) {
-    this.for(context);
-  }
-
-  for(context: any) {
-    this.#context = context;
+  for(context: Context) {
+    this._context = context;
     return this;
   }
 
   with(container: Container) {
-    if (container !== this && ! this.#containers.has(container)) {
-      this.#containers.add(container);
-    }
+    this._containers.add(container);
+    container._containers.add(this);
 
     return this;
   }
 
   invalidate() {
-    for (const [ , dependency ] of this.#dependencies) {
-      if ( ! dependency.persistent) {
-        dependency.provide.invalidate();
+    Object.entries(this._dependencies).forEach(([ , dependency ]) => {
+      if (typeof dependency.invalidate === 'function') {
+        dependency.invalidate();
       }
-    }
+    })
 
     return this;
   }
 
   unbind(name: string) {
-    this.#dependencies.delete(name);
+    delete this._dependencies[name];
     return this;
   }
 
-  bind(name: any, provide?: any, persistent: boolean = false) {
+  bind(name: any, provide?: any, invalidate?: any) {
     let dependency = name;
     if (typeof name === 'string') {
-      dependency = { name, provide, persistent };
+      dependency = { name, provide, invalidate };
     }
 
     this.#addDependency(dependency);
     return this;
   }
 
-  #addDependency({ name, provide, persistent }) {
-    this.#dependencies.set(name, {
-      persistent: persistent || false,
-      provide: memoize((context) => provide(context))
-    });
+  #addDependency({ name, provide, invalidate }) {
+    this._dependencies[name] = {
+      name: name,
+      provide: provide,
+      invalidate: invalidate,
+    };
   }
 
   has(name: string) {
-    if (this.#dependencies.has(name)) {
+    if (this._dependencies.hasOwnProperty(name)) {
       return true;
     }
 
-    if (this.#context.hasOwnProperty(name)) {
+    if (this._context.hasOwnProperty(name)) {
       return true;
     }
 
@@ -104,16 +110,16 @@ export class Container {
   }
 
   resolve(name: string) {
-    if (this.#dependencies.has(name)) {
-      const dependency = this.#dependencies.get(name);
-      return dependency.provide(this.dependencies);
+    if (this._dependencies.hasOwnProperty(name)) {
+      const dependency = this._dependencies[name];
+      return dependency.provide(this.dependencies, this);
     }
 
-    if (this.#context.hasOwnProperty(name)) {
-      return this.#context[name];
+    if (this._context.hasOwnProperty(name)) {
+      return this._context[name];
     }
 
-    for (const container of this.#containers) {
+    for (const container of this._containers) {
       if (container.has(name)) {
         return container.resolve(name);
       }
